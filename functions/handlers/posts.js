@@ -14,7 +14,7 @@ exports.getAllPosts = (req,res) => {
                 userHandle: doc.data().userHandle,
                 createdAt: doc.data(),createdAt,
                 commentCount: doc.data().commentCount,
-                likeCount: doc.data().likeCount,
+                voteCount: doc.data().voteCount,
                 userImage: doc.data().userImage
             });
         });
@@ -36,7 +36,7 @@ exports.createPost = (req, res) => {
         userHandle: req.user.handle,
         userImage: req.user.imageUrl,
         createdAt: new Date().toISOString(),
-        likeCount: 0,
+        voteCount: 0,
         commentCount: 0
     };
 
@@ -116,9 +116,9 @@ exports.commentOnPost = (req, res) => {
       });
   };
 
-  exports.likePost = (req, res) => {
-    const likeDocument = db
-      .collection('likes')
+  exports.upvotePost = (req, res) => {
+    const voteDocument = db
+      .collection('votes')
       .where('userHandle', '==', req.user.handle)
       .where('postId', '==', req.params.postId)
       .limit(1);
@@ -133,7 +133,7 @@ exports.commentOnPost = (req, res) => {
         if (doc.exists) {
           postData = doc.data();
           postData.postId = doc.id;
-          return likeDocument.get();
+          return voteDocument.get();
         } else {
           return res.status(404).json({ error: 'Post not found' });
         }
@@ -141,20 +141,20 @@ exports.commentOnPost = (req, res) => {
       .then((data) => {
         if (data.empty) {
           return db
-            .collection('likes')
+            .collection('votes')
             .add({
               postId: req.params.postId,
               userHandle: req.user.handle
             })
             .then(() => {
-              postData.likeCount++;
-              return postDocument.update({ likeCount: postData.likeCount });
+              postData.voteCount++;
+              return postDocument.update({ voteCount: postData.voteCount });
             })
             .then(() => {
               return res.json(postData);
             });
         } else {
-          return res.status(400).json({ error: 'Post already liked' });
+          return res.status(400).json({ error: 'Post already voted' });
         }
       })
       .catch((err) => {
@@ -163,9 +163,9 @@ exports.commentOnPost = (req, res) => {
       });
   };
   
-  exports.unlikePost = (req, res) => {
-    const likeDocument = db
-      .collection('likes')
+  exports.downvotePost = (req, res) => {
+    const voteDocument = db
+      .collection('votes')
       .where('userHandle', '==', req.user.handle)
       .where('postId', '==', req.params.postId)
       .limit(1);
@@ -180,32 +180,29 @@ exports.commentOnPost = (req, res) => {
         if (doc.exists) {
           postData = doc.data();
           postData.postId = doc.id;
-          return likeDocument.get();
+          return voteDocument.get();
         } else {
           return res.status(404).json({ error: 'Post not found' });
         }
       })
       .then((data) => {
-        if (data.empty) {
-          return res.status(400).json({ error: 'Post not liked' });
-        } else {
           return db
-            .doc(`/likes/${data.docs[0].id}`)
+            .doc(`/votes/${data.docs[0].id}`)
             .delete()
             .then(() => {
-              postData.likeCount--;
-              return postDocument.update({ likeCount: postData.likeCount });
+              postData.voteCount--;
+              return postDocument.update({ voteCount: postData.voteCount });
             })
             .then(() => {
               res.json(postData);
-            });
-        }
+            });        
       })
       .catch((err) => {
         console.error(err);
         res.status(500).json({ error: err.code });
       });
   };
+
   // Delete a post
   exports.deletePost = (req, res) => {
     const document = db.doc(`/posts/${req.params.postId}`);

@@ -4,7 +4,7 @@ const app = require('express')();
 const FBAuth = require('./util/fbAuth')
 const {db} = require('./util/admin');
 
-const{getAllPosts, createPost, getPost, commentOnPost, likePost, unlikePost, deletePost} = require('./handlers/posts');
+const{getAllPosts, createPost, getPost, commentOnPost, upvotePost, downvotePost, deletePost} = require('./handlers/posts');
 const{signup, login, uploadImage, addUserDetails, getAuthenticatedUser} = require('./handlers/users'); 
 
 
@@ -17,8 +17,8 @@ app.post('/post',FBAuth, createPost);
 
 app.get('/post/:postId', getPost);
 app.post('/post/:postId/comment', FBAuth, commentOnPost)
-app.get('/post/:postId/like', FBAuth, likePost);
-app.get('/post/:postId/unlike', FBAuth, unlikePost);
+app.get('/post/:postId/upvote', FBAuth, upvotePost);
+app.get('/post/:postId/downvote', FBAuth, downvotePost);
 app.get('/post/:postId', FBAuth, deletePost);
 
 

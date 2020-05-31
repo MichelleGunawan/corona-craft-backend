@@ -116,15 +116,15 @@ exports.addUserDetails = (req, res) => {
         if (doc.exists) {
           userData.credentials = doc.data();
           return db
-            .collection('likes')
+            .collection('votes')
             .where('userHandle', '==', req.user.handle)
             .get();
         }
       })
       .then((data) => {
-        userData.likes = [];
+        userData.votes = [];
         data.forEach((doc) => {
-          userData.likes.push(doc.data());
+          userData.votes.push(doc.data());
         });
         return res.json(userData);
       })
