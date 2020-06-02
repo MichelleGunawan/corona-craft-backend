@@ -12,11 +12,12 @@ exports.getAllPosts = (req,res) => {
                 postId: doc.id,
                 title: doc.data().title,
                 body: doc.data().body,
-                userHandle: doc.data().userHandle,
-                createdAt: doc.data(),createdAt,
+                tag: doc.data().tag,
+                //userHandle: doc.data().userHandle,
+                createdAt: doc.data().createdAt,
                 commentCount: doc.data().commentCount,
                 voteCount: doc.data().voteCount,
-                userImage: doc.data().userImage
+                //userImage: doc.data().userImage
             });
         });
         return res.json(posts);
