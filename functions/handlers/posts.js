@@ -10,6 +10,7 @@ exports.getAllPosts = (req,res) => {
         data.forEach((doc) => {
             posts.push({
                 postId: doc.id,
+                title: doc.data().title,
                 body: doc.data().body,
                 userHandle: doc.data().userHandle,
                 createdAt: doc.data(),createdAt,
@@ -32,9 +33,11 @@ exports.createPost = (req, res) => {
     }
 
     const newPost = {
+        title: req.body.title,
         body: req.body.body,
-        userHandle: req.user.handle,
-        userImage: req.user.imageUrl,
+        tag: req.body.tag,
+        //userHandle: req.user.handle,
+        //userImage: req.user.imageUrl,
         createdAt: new Date().toISOString(),
         voteCount: 0,
         commentCount: 0

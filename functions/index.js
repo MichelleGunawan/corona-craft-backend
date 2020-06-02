@@ -1,5 +1,13 @@
 const functions = require('firebase-functions');
 const app = require('express')();
+const express = require('express');
+const cors = require('cors');
+
+
+// Automatically allow cross-origin requests
+app.use(cors({ origin: true }));
+
+
 //makes sure only authorized/logged in people can post/upload images
 const FBAuth = require('./util/fbAuth')
 const {db} = require('./util/admin');
