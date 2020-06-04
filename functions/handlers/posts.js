@@ -1,9 +1,10 @@
-const {db} = require('../util/admin');
+const {admin, db} = require('../util/admin');
+const config = require('../util/config');
 
 exports.getAllPosts = (req,res) => {
     db
     .collection('posts')
-    .orderBy('createdAt','desc')
+    .orderBy('voteCount')
     .get()
     .then((data) => {
         let posts = [];
@@ -13,7 +14,7 @@ exports.getAllPosts = (req,res) => {
                 title: doc.data().title,
                 body: doc.data().body,
                 tag: doc.data().tag,
-                //userHandle: doc.data().userHandle,
+                userHandle: doc.data().userHandle,
                 createdAt: doc.data().createdAt,
                 commentCount: doc.data().commentCount,
                 voteCount: doc.data().voteCount,
@@ -37,7 +38,7 @@ exports.createPost = (req, res) => {
         title: req.body.title,
         body: req.body.body,
         tag: req.body.tag,
-        //userHandle: req.user.handle,
+        userHandle: req.user.handle,
         //userImage: req.user.imageUrl,
         createdAt: new Date().toISOString(),
         voteCount: 0,
@@ -70,7 +71,7 @@ exports.getPost = (req, res) => {
       postData.postId = doc.id;
       return db
         .collection('comments')
-        .orderBy('createdAt', 'desc')
+        .orderBy('voteCount')
         .where('postId', '==', req.params.postId)
         .get();
     })
@@ -93,10 +94,10 @@ exports.commentOnPost = (req, res) => {
   
     const newComment = {
       body: req.body.body,
-      createdAt: new Date().toISOString(),
+      //createdAt: new Date().toISOString(),
       postId: req.params.postId,
       userHandle: req.user.handle,
-      userImage: req.user.imageUrl
+      //userImage: req.user.imageUrl
     };
     console.log(newComment);
   
@@ -174,7 +175,7 @@ exports.commentOnPost = (req, res) => {
       .where('postId', '==', req.params.postId)
       .limit(1);
   
-    const postDocument = db.doc(`/posts/${req.params.postId}`);
+    const postDocument = db.doc(`/post/${req.params.postId}`);
   
     let postData;
   
@@ -229,4 +230,58 @@ exports.commentOnPost = (req, res) => {
         console.error(err);
         return res.status(500).json({ error: err.code });
       });
+  };
+
+
+ //uploads image
+  //run npm install --save busboy
+  exports.uploadImage = (req, res) => {
+    const BusBoy = require('busboy');
+    const path = require('path');
+    const os = require('os');
+    const fs = require('fs');
+  
+    const busboy = new BusBoy({ headers: req.headers });
+  
+    let imageFileName;
+    let imageToBeUploaded = {};
+  
+    busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+      if (mimetype !== 'image/jpeg' && mimetype !== 'image/png') {
+        return res.status(400).json({ error: 'Wrong file type submitted' });
+      }
+      // my.image.png
+      const imageExtension = filename.split('.')[filename.split('.').length - 1];
+      // 645235423674523.png
+      imageFileName = `${Math.round(
+        Math.random() * 100000000000).toString()}.${imageExtension}`;
+      const filepath = path.join(os.tmpdir(), imageFileName);
+      imageToBeUploaded = { filepath, mimetype };
+      file.pipe(fs.createWriteStream(filepath));
+    });
+    busboy.on('finish', () => {
+      admin
+        .storage()
+        .bucket()
+        .upload(imageToBeUploaded.filepath, {
+          resumable: false,
+          metadata: {
+            metadata: {
+              contentType: imageToBeUploaded.mimetype
+            }
+          }
+        })
+        .then(() => {
+          const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
+          return db.doc(`/posts/${req.params.postId}`).update({ image:imageUrl });
+        })
+        .then(() => {
+          return res.json({ message: 'Image uploaded successfully' });
+        })
+        .catch((err) => {
+          console.error(err);
+          return res.status(500).json({ error: 'something went wrong' });
+        });
+    });
+    busboy.end(req.rawBody);
   };

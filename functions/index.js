@@ -12,9 +12,9 @@ app.use(cors({ origin: true }));
 const FBAuth = require('./util/fbAuth')
 const {db} = require('./util/admin');
 
-const{getAllPosts, createPost, getPost, commentOnPost, upvotePost, downvotePost, deletePost} = require('./handlers/posts');
-const{signup, login, uploadImage, addUserDetails, getAuthenticatedUser} = require('./handlers/users'); 
-
+const{uploadImage, getAllPosts, createPost, getPost, commentOnPost, upvotePost, downvotePost, deletePost} = require('./handlers/posts');
+const{signup, login, addUserDetails, getAuthenticatedUser} = require('./handlers/users'); 
+//const{scraper}= require('./handlers/scraper');
 
 
 //getAllScreams,createPost are functions located in posts.js
@@ -28,7 +28,9 @@ app.post('/post/:postId/comment', FBAuth, commentOnPost)
 app.get('/post/:postId/upvote', FBAuth, upvotePost);
 app.get('/post/:postId/downvote', FBAuth, downvotePost);
 app.get('/post/:postId', FBAuth, deletePost);
+app.post('/post/:postId/image',FBAuth, uploadImage);
 
+//app.post('/posts/scraper',scraper);
 
 //signup,login are functions located in users.js
 // signup
@@ -36,9 +38,8 @@ app.post('/signup', signup);
 //login
 app.post('/login', login);  
 //allow users to upload image
-app.post('/user/image', FBAuth, uploadImage);
 app.post('/user', FBAuth, addUserDetails);
-app.post('/user', FBAuth, getAuthenticatedUser);
+app.get('/user', FBAuth, getAuthenticatedUser);
 
 exports.api = functions.https.onRequest(app);
 
