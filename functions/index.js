@@ -12,7 +12,7 @@ app.use(cors({ origin: true }));
 const FBAuth = require('./util/fbAuth')
 const {db} = require('./util/admin');
 
-const{uploadImage, getAllPosts, createPost, getPost, commentOnPost, upvotePost, downvotePost, deletePost} = require('./handlers/posts');
+const{likeName, uploadImage, getAllPosts, createPost, getPost, commentOnPost, upvotePost, downvotePost, deletePost} = require('./handlers/posts');
 const{signup, login, addUserDetails, getAuthenticatedUser} = require('./handlers/users'); 
 //const{scraper}= require('./handlers/scraper');
 
@@ -28,9 +28,7 @@ app.post('/post/:postId/comment', FBAuth, commentOnPost)
 app.get('/post/:postId/upvote', FBAuth, upvotePost);
 app.get('/post/:postId/downvote', FBAuth, downvotePost);
 app.get('/post/:postId', FBAuth, deletePost);
-app.post('/post/:postId/image',FBAuth, uploadImage);
-
-//app.post('/posts/scraper',scraper);
+app.post('/post/:postId/image', FBAuth, uploadImage);
 
 //signup,login are functions located in users.js
 // signup

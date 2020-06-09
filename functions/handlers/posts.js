@@ -4,7 +4,7 @@ const config = require('../util/config');
 exports.getAllPosts = (req,res) => {
     db
     .collection('posts')
-    .orderBy('voteCount')
+    .orderBy('voteCount', "desc")
     .get()
     .then((data) => {
         let posts = [];
@@ -40,7 +40,7 @@ exports.createPost = (req, res) => {
         tag: req.body.tag,
         userHandle: req.user.handle,
         //userImage: req.user.imageUrl,
-        createdAt: new Date().toISOString(),
+        createdAt: new Date(),
         voteCount: 0,
         commentCount: 0
     };
@@ -71,7 +71,7 @@ exports.getPost = (req, res) => {
       postData.postId = doc.id;
       return db
         .collection('comments')
-        .orderBy('voteCount')
+        .orderBy('voteCount',"desc")
         .where('postId', '==', req.params.postId)
         .get();
     })
@@ -122,8 +122,13 @@ exports.commentOnPost = (req, res) => {
   };
 
   exports.upvotePost = (req, res) => {
-    const voteDocument = db
-      .collection('votes')
+    const upvoteDocument = db
+      .collection('upvotes')
+      .where('userHandle', '==', req.user.handle)
+      .where('postId', '==', req.params.postId)
+      .limit(1);
+    const downvoteDocument = db
+      .collection('downvotes')
       .where('userHandle', '==', req.user.handle)
       .where('postId', '==', req.params.postId)
       .limit(1);
@@ -138,15 +143,45 @@ exports.commentOnPost = (req, res) => {
         if (doc.exists) {
           postData = doc.data();
           postData.postId = doc.id;
-          return voteDocument.get();
+          return downvoteDocument.get();
         } else {
           return res.status(404).json({ error: 'Post not found' });
         }
       })
       .then((data) => {
         if (data.empty) {
+          return upvoteDocument.get();
+          // return db
+          //   .collection('votes')
+          //   .add({
+          //     postId: req.params.postId,
+          //     userHandle: req.user.handle
+          //   })
+          //   .then(() => {
+          //     postData.voteCount++;
+          //     return postDocument.update({ voteCount: postData.voteCount });
+          //   })
+          //   .then(() => {
+          //     return res.json(postData);
+          //   });
+        } else {
           return db
-            .collection('votes')
+            .doc(`/downvotes/${data.docs[0].id}`)
+            .delete()
+            .then(() => {
+              postData.voteCount++;
+              return postDocument.update({ voteCount: postData.voteCount });
+            })
+            .then(() => {
+              res.json(postData);
+            }); 
+          //return res.status(400).json({ error: 'Post already voted' });
+        }
+      })
+      .then((data)=>{
+        if (data.empty) {
+          return db
+            .collection('upvotes')
             .add({
               postId: req.params.postId,
               userHandle: req.user.handle
@@ -159,7 +194,7 @@ exports.commentOnPost = (req, res) => {
               return res.json(postData);
             });
         } else {
-          return res.status(400).json({ error: 'Post already voted' });
+          return res.status(400).json({ error: 'Post already upvoted' });
         }
       })
       .catch((err) => {
@@ -169,13 +204,18 @@ exports.commentOnPost = (req, res) => {
   };
   
   exports.downvotePost = (req, res) => {
-    const voteDocument = db
-      .collection('votes')
+    const upvoteDocument = db
+      .collection('upvotes')
+      .where('userHandle', '==', req.user.handle)
+      .where('postId', '==', req.params.postId)
+      .limit(1);
+    const downvoteDocument = db
+      .collection('downvotes')
       .where('userHandle', '==', req.user.handle)
       .where('postId', '==', req.params.postId)
       .limit(1);
   
-    const postDocument = db.doc(`/post/${req.params.postId}`);
+    const postDocument = db.doc(`/posts/${req.params.postId}`);
   
     let postData;
   
@@ -185,14 +225,30 @@ exports.commentOnPost = (req, res) => {
         if (doc.exists) {
           postData = doc.data();
           postData.postId = doc.id;
-          return voteDocument.get();
+          return upvoteDocument.get();
         } else {
           return res.status(404).json({ error: 'Post not found' });
         }
       })
       .then((data) => {
+        if (data.empty) {
+          return downvoteDocument.get();
+          // return db
+          //   .collection('votes')
+          //   .add({
+          //     postId: req.params.postId,
+          //     userHandle: req.user.handle
+          //   })
+          //   .then(() => {
+          //     postData.voteCount++;
+          //     return postDocument.update({ voteCount: postData.voteCount });
+          //   })
+          //   .then(() => {
+          //     return res.json(postData);
+          //   });
+        } else {
           return db
-            .doc(`/votes/${data.docs[0].id}`)
+            .doc(`/upvotes/${data.docs[0].id}`)
             .delete()
             .then(() => {
               postData.voteCount--;
@@ -200,7 +256,28 @@ exports.commentOnPost = (req, res) => {
             })
             .then(() => {
               res.json(postData);
-            });        
+            }); 
+          //return res.status(400).json({ error: 'Post already voted' });
+        }
+      })
+      .then((data)=>{
+        if (data.empty) {
+          return db
+            .collection('downvotes')
+            .add({
+              postId: req.params.postId,
+              userHandle: req.user.handle
+            })
+            .then(() => {
+              postData.voteCount--;
+              return postDocument.update({ voteCount: postData.voteCount });
+            })
+            .then(() => {
+              return res.json(postData);
+            });
+        } else {
+          return res.status(400).json({ error: 'Post already downvoted' });
+        }
       })
       .catch((err) => {
         console.error(err);
